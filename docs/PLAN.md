@@ -58,36 +58,71 @@ Trasladado de `pdf/color.go`, con tres cambios:
 
 ## 3. Lo que falta
 
-### 3.1 Migrar `tinywasm/pdf`
+### 3.1 Migrar `tinywasm/pdf` — **no es trabajo de este repo**
 
-`pdf` mantiene su propio `Color` en `color.go`. Debe importar éste.
+`pdf` mantiene su propio `Color` y debe pasar a importar éste, pero ese cambio ocurre
+**en el repositorio de `pdf`**, no aquí. Está especificado en `pdf/docs/PLAN.md` §5
+(Defecto 4): son 20 referencias en cuatro archivos, se sustituyen por `color.Color`
+**sin alias**, y allí queda anotado qué ficheros de `fpdf/` son falsos positivos al
+buscar `Color`.
 
-- **Borrar el tipo `Color` y `parse()`** de `pdf/color.go`.
-- **`pdf.Color` pasa a ser un alias** — `type Color = color.Color` — para no tocar las
-  123 referencias del repo de golpe. Es un alias de tipo, no un envoltorio: no añade
-  método ni comportamiento, así que no es el *fork with a friendlier name* que la regla
-  prohíbe. Si se prefiere el corte limpio, se sustituyen las 123 y se elimina el alias;
-  decidir explícitamente.
-- **`Theme` NO se mueve.** Lleva `Sizes` (H1/H2/H3 en puntos), `Spacing`, `Page` y
-  `Margin` en **milímetros**: es el tema de un documento PDF, no color. Que contenga
-  colores no lo convierte en uno, y traérselo aquí metería tamaños de página en una
-  librería de color (principio 5).
-- Ficheros afectados: `element.go`, `table_layout.go`, `document.go`,
-  `examples/contract_layout/main.go`. `fpdf/png.go` y `fpdf/spotcolor.go` usan un
-  `color` distinto del stdlib — **revisar antes de tocar**, el nombre colisiona.
+Se deja anotado aquí sólo para que se vea la cadena completa. **Un `codejob` sobre este
+módulo no puede tocar `pdf`**, y confundirlo lleva a un plan que nadie puede ejecutar.
 
-### 3.2 Recoger la ciencia del color de `css`
+### 3.2 La superficie que falta
 
-Sacar de `css/contrast_test.go` a producción, aquí:
+Inventariado contra lo que los consumidores necesitan de verdad — `pdf` sólo usa `RGB()`
+(comprobado: todos sus usos son `parse()` → `SetFillColor(r,g,b)`), y todo lo demás lo
+pide la auditoría de contraste de `css`:
 
 ```go
+// Luminancia relativa WCAG. Aplica la curva sRGB, no es un promedio de canales.
 func (c Color) Luminance() float64
+
+// Ratio de contraste WCAG entre dos colores: de 1 (idénticos) a 21 (negro/blanco).
 func Contrast(a, b Color) float64
+
+// Mezcla en el espacio Oklab, que es lo que significa `color-mix(in oklab, …)`.
+func Mix(a, b Color, pct float64) Color
+
+// Compone un color translúcido sobre un fondo opaco.
+func (c Color) Over(backdrop Color) Color
 ```
 
-`css` pasa a importarlas en lugar de tener su copia en un test. Eso convierte su
-auditoría de contraste en algo que cualquier consumidor puede ejecutar, no un detalle
-interno de su suite.
+Las dos primeras salen de `css/contrast_test.go`, donde hoy viven atrapadas. Las dos
+últimas no existen en ningún sitio y son las que cierran §3.3.
+
+#### `Mix` es en Oklab, y eso no es un detalle
+
+`color-mix(in oklab, …)` **no** interpola en sRGB. El camino es
+sRGB → lineal → LMS → Oklab → interpolar → volver. Una interpolación ingenua de canales
+RGB da un color distinto, y para una auditoría de accesibilidad eso significa validar un
+color que el navegador nunca pinta.
+
+Si se implementa mal, los tests pasan y la garantía es falsa. **Verificar contra valores
+que produzca un navegador real**, no contra los que devuelva la propia implementación.
+
+#### `Over` existe por un caso concreto
+
+`ColorSelection` es `color-mix(in oklab, var(--color-primary), transparent 85%)`
+(`css/catalog.go:25`). Mezclar con `transparent` produce un color **con alfa**, y el
+contraste de un color translúcido no está definido sin saber sobre qué se pinta.
+
+Así que `Contrast` sobre ese valor no tiene respuesta: primero hay que componerlo sobre
+su fondo real con `Over`, y auditar el resultado. Sin esto, `SurfaceSelected` no puede
+entrar en `AllPairs()` aunque `Mix` exista.
+
+Implica que `Color` debe admitir alfa —`#RRGGBBAA` y `transparent`—, hoy no soportado.
+
+#### Dónde está la frontera con `css`
+
+| Concern | Dueño |
+|---|---|
+| Matemática del color: parsear, luminancia, contraste, mezclar, componer | **`color`** |
+| Sintaxis CSS: `var()`, `light-dark()`, resolver un token | `css` |
+
+`css` parsea la expresión `color-mix(in oklab, A, B 8%)` —eso es sintaxis suya— y llama
+a `Mix` para el cálculo. Esta pieza nunca ve un `var()`.
 
 **Cuidado con el sentido de la dependencia:** `css` es `//go:build !wasm` y esta pieza no
 tiene tag. `css → color` es correcto. Al revés sería imposible y además absurdo.
@@ -98,11 +133,15 @@ tiene tag. `css → color` es correcto. Al revés sería imposible y además abs
 `AllPairs()` excluye los pares cuyo fondo es compuesto — un hueco declarado en la
 garantía de accesibilidad del ecosistema.
 
-Evaluar `color-mix(in oklab, …)` es trabajo de esta pieza. Con `Mix` aquí, esos pares
-entran en la auditoría y el hueco se cierra donde le toca.
+Con `Mix` y `Over` aquí, esos dos pares entran en la auditoría:
 
-No es obligatorio en este plan, pero **es la razón por la que la pieza merece existir**
-más allá de deduplicar un parser: hay una carencia real esperando dueño.
+| Par | Expresión | Qué hace falta |
+|---|---|---|
+| `SurfaceSunken` | `color-mix(in oklab, var(--color-surface), var(--color-on-surface) 8%)` | `Mix` — dos colores opacos |
+| `SurfaceSelected` | `color-mix(in oklab, var(--color-primary), transparent 85%)` | `Mix` **y** `Over` — el resultado lleva alfa |
+
+**Es la razón por la que la pieza merece existir** más allá de deduplicar un parser: hay
+una carencia real, declarada y con dueño ausente.
 
 ---
 
@@ -117,14 +156,33 @@ más allá de deduplicar un parser: hay una carencia real esperando dueño.
 
 ## 5. Verificación
 
-1. `grep -rn "Int(16)\|ParseUint" pdf/ css/` no encuentra ningún parser de hex: queda
-   uno, y está aquí.
-2. `pdf` compila contra este módulo y su suite sigue verde.
-3. `css/contrast_test.go` usa `Contrast` de aquí y no declara su propio cálculo.
-4. Ningún archivo de este paquete lleva build tag, y compila bajo `GOOS=js GOARCH=wasm`.
-5. `grep -rn "map\[" *.go` vacío.
-6. No aparece ningún tamaño, margen ni unidad de página en la superficie pública.
-7. `gotest` en verde en los tres módulos.
+Lo que este repo puede verificar por sí mismo:
+
+1. **`Contrast` contra valores conocidos**, no contra lo que devuelva la implementación:
+   negro/blanco = 21, un color consigo mismo = 1. Y `#e8a33d` sobre `#1C1C1E` ≈ 7,89,
+   que es un par real del catálogo de `css`.
+2. **`Mix` contra un navegador, no contra sí misma.** Es el punto donde una
+   implementación en sRGB pasa sus propios tests y produce el color equivocado. Al menos
+   un caso comprobado con lo que pinta un navegador real para
+   `color-mix(in oklab, …)`.
+3. **`Over` sobre un fondo conocido**: un color con alfa 0 deja el fondo intacto; con
+   alfa 1 lo tapa por completo.
+4. `Color` acepta `#RRGGBBAA` y `transparent`, y `RGB()` sigue funcionando igual para
+   los colores opacos de siempre.
+5. Ningún archivo de este paquete lleva build tag, y compila bajo `GOOS=js GOARCH=wasm`.
+6. `grep -rn "map\[" *.go` vacío.
+7. No aparece ningún tamaño, margen ni unidad de página en la superficie pública: si
+   entra un milímetro, la pieza se salió de su responsabilidad. Tampoco un `var(` ni un
+   `light-dark(`: eso es sintaxis CSS, no color.
+8. `gotest` en verde.
+
+Lo que sólo se puede verificar cuando los consumidores migren, y que por tanto **no
+bloquea este plan**:
+
+9. `grep -rn "Int(16)\|ParseUint" pdf/ css/` no encuentra ningún parser de hex.
+10. `css/contrast_test.go` usa `Contrast` de aquí en vez de su propio cálculo.
+11. `AllPairs()` de `css` incluye `SurfaceSunken` y `SurfaceSelected`: la carencia de
+    §3.3 quedó cerrada de verdad, no sólo con la función disponible.
 
 `docs/ARCHITECTURE.md` y `docs/SPECS.md` se escriben en el mismo commit; `README.md` los
 indexa.
