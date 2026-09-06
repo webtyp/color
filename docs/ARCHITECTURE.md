@@ -1,6 +1,6 @@
 # Architecture: Color Piece
 
-This module provides WCAG-compliant color utilities for the tinywasm ecosystem. It is designed to compile cleanly to WebAssembly (`GOOS=js GOARCH=wasm`) without any build tags and operates purely with string-based design tokens (`Color`).
+This module provides WCAG-compliant color utilities for the webtyp ecosystem. It is designed to compile cleanly to WebAssembly (`GOOS=js GOARCH=wasm`) without any build tags and operates purely with string-based design tokens (`Color`).
 
 ## Core Responsibilities
 

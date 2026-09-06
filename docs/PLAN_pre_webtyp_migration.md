@@ -25,7 +25,7 @@ El color está escrito dos veces, con dos implementaciones distintas del mismo c
 
 | Dónde | Qué hace | Estado |
 |---|---|---|
-| `pdf/color.go:11` | `Color.parse()` → hex a RGB, con `tinywasm/fmt` | producción |
+| `pdf/color.go:11` | `Color.parse()` → hex a RGB, con `webtyp/fmt` | producción |
 | `css/contrast_test.go:20-22` | `strconv.ParseUint(hex[0:2], 16, 32)` × 3 | **dentro de un test** |
 
 Y en ese mismo archivo de test viven `relativeLuminance` y `contrastRatio`: ciencia del
@@ -60,7 +60,7 @@ Trasladado de `pdf/color.go`, con tres cambios:
 
 ## 3. Lo que falta
 
-### 3.1 Migrar `tinywasm/pdf` — **no es trabajo de este repo**
+### 3.1 Migrar `webtyp/pdf` — **no es trabajo de este repo**
 
 `pdf` mantiene su propio `Color` y debe pasar a importar éste, pero ese cambio ocurre
 **en el repositorio de `pdf`**, no aquí. Está especificado en `pdf/docs/PLAN.md` §5
@@ -149,7 +149,7 @@ una carencia real, declarada y con dueño ausente.
 
 ## 4. Lo que esta pieza nunca hace
 
-- **No emite CSS.** `var(--x)`, `light-dark()` y los tokens son de `tinywasm/css`.
+- **No emite CSS.** `var(--x)`, `light-dark()` y los tokens son de `webtyp/css`.
 - **No dibuja.** Convertir un color a la instrucción de relleno de un PDF es de `pdf`.
 - **No trae paleta.** No hay colores de marca aquí; los declara cada producto.
 - **Sin mapas.** Vetados en el ecosistema por lo que añaden al binario TinyGo.

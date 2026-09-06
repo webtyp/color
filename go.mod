@@ -1,5 +1,5 @@
-module github.com/tinywasm/color
+module webtyp.com/color
 
 go 1.25.2
 
-require github.com/tinywasm/fmt v0.25.5
+require webtyp.com/fmt v0.25.5

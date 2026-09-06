@@ -1,4 +1,4 @@
-// Package color owns colour for the tinywasm framework: how a colour is
+// Package color owns colour for the webtyp framework: how a colour is
 // written, how it is read, and how two of them relate.
 //
 // It carries no build tag, so it crosses into WASM. That is deliberate: a
@@ -9,7 +9,7 @@ package color
 import (
 	"math"
 
-	. "github.com/tinywasm/fmt"
+	. "webtyp.com/fmt"
 )
 
 // Color is a CSS-style hex string: "#RRGGBB" or "#RGB", and supports alpha as "#RRGGBBAA" or "#RGBA", as well as "transparent".
