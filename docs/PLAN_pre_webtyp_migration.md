@@ -1,8 +1,6 @@
 ---
 PLAN: "Recoger el color del ecosistema en esta pieza"
 TAG: v0.1.0
-STATUS: running
-SESSION: 1171274572088145272
 ---
 
 # PLAN — Recoger el color del ecosistema en esta pieza
