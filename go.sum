@@ -1,2 +1,12 @@
-webtyp.com/fmt v1.0.2 h1:otV3cuFjSfn1c2s5l8nNd60+ycW5ffPgfptXHZLYGUM=
-webtyp.com/fmt v1.0.2/go.mod h1:FmTxx713R45J21kbH5JOmKGaaCap3fJPA9Yl2n4Ch7U=
+webtyp.com/country v0.0.2 h1:n7qWj5YvIo8/2YGRwwRumxm+4K04m9pckBzPnp982TE=
+webtyp.com/country v0.0.2/go.mod h1:69HNoCinY7jekTYyAdbuIvnY+FnG4NKhQ2uU90mu5kM=
+webtyp.com/filetype v0.1.1 h1:/Z+r59YdCHIhbV0aiSjOs4+euG7d6oTm9AScbsHJy4Q=
+webtyp.com/filetype v0.1.1/go.mod h1:5UaiLwPFpO3fYOQOFNsW80cgGk8pA/+wFBw6FLfN0lE=
+webtyp.com/fmt v1.0.3 h1:Tb9ZRKOwrRpy+ySEC9mXDEXRH+nsKZA4QZhdmw2hC8I=
+webtyp.com/fmt v1.0.3/go.mod h1:FmTxx713R45J21kbH5JOmKGaaCap3fJPA9Yl2n4Ch7U=
+webtyp.com/input v0.2.7 h1:KDS0wNi2n5LN0xMuIlIj1DUdjJUHBhCUt90O1U7NJUk=
+webtyp.com/input v0.2.7/go.mod h1:WFS6tw7+qboEECgPQ3ZJp6Tf1dTiW5BZPyv+IJX1qC4=
+webtyp.com/lang v0.1.22 h1:H69qsgSfywFV8Xoey8mgCnsiWQvEqGCtSN2qN5Am9Pw=
+webtyp.com/lang v0.1.22/go.mod h1:2Z1KjC0mD6VGwxvNTB/MwU/vEqadeCz9uz81mLcXLMg=
+webtyp.com/model v0.2.24 h1:JYflv0f7c/D1Wg83VucTPdCDfqFaI3LcGmKrYHfAqLE=
+webtyp.com/model v0.2.24/go.mod h1:UQYKPyr+VmirnvSoWNmFgUDAijSlT2x3Ynn/QpUbkoU=
